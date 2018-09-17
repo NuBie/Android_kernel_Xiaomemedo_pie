@@ -146,8 +146,6 @@ static void _ab_buslevel_update(struct kgsl_pwrctrl *pwr,
 	else
 		*ab = (pwr->bus_percent_ab * max_bw) / 100;
 
-	if (*ab > ib)
-		*ab = ib;
 }
 
 /**
