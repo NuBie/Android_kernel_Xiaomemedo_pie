@@ -1,4 +1,10 @@
+## Horcrux Configs
+# Name
 CONFIG_LOCALVERSION="-NinthHorcux-"
+# Kcal
+CONFIG_FB_MSM_MDSS_KCAL_CTRL=y
+
+
 # CONFIG_USELIB is not set
 CONFIG_AUDIT=y
 CONFIG_NO_HZ=y
