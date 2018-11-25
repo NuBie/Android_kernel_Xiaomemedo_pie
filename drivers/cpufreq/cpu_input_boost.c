@@ -20,9 +20,9 @@
 #include <linux/slab.h>
 
 /* Available bits for boost_drv state */
-#define SCREEN_AWAKE		BIT(0)
-#define WAKE_BOOST		BIT(1)
-#define MAX_BOOST		BIT(2)
+#define SCREEN_AWAKE		(1U << 0)
+#define WAKE_BOOST		(1U << 1)
+#define MAX_BOOST		(1U << 2)
 
 struct boost_drv {
 	struct workqueue_struct *wq;
@@ -32,29 +32,35 @@ struct boost_drv {
 	struct notifier_block fb_notif;
 	unsigned long max_boost_expires;
 	atomic_t max_boost_dur;
-	atomic_t state;
 	spinlock_t lock;
+	u32 state;
 };
 
 static struct boost_drv *boost_drv_g;
 
 static u32 get_boost_state(struct boost_drv *b)
 {
-	return atomic_read(&b->state);
+	u32 state;
+
+	spin_lock(&b->lock);
+	state = b->state;
+	spin_unlock(&b->lock);
+
+	return state;
 }
 
 static void set_boost_bit(struct boost_drv *b, u32 state)
 {
-	atomic_or(state, &b->state);
+	spin_lock(&b->lock);
+	b->state |= state;
+	spin_unlock(&b->lock);
 }
 
 static void clear_boost_bit(struct boost_drv *b, u32 state)
 {
-	int old, new;
-	do {
-		old = atomic_read(&b->state);
-		new = old & ~state;
-	} while (atomic_cmpxchg(&b->state, old, new) != old);
+	spin_lock(&b->lock);
+	b->state &= ~state;
+	spin_unlock(&b->lock);
 }
 
 static void update_online_cpu_policy(void)
@@ -264,7 +270,7 @@ static int __init cpu_input_boost_init(void)
 	spin_lock_init(&b->lock);
 	INIT_WORK(&b->max_boost, max_boost_worker);
 	INIT_DELAYED_WORK(&b->max_unboost, max_unboost_worker);
-	atomic_set(&b->state, 0);
+	b->state = SCREEN_AWAKE;
 
 	b->cpu_notif.notifier_call = cpu_notifier_cb;
 	ret = cpufreq_register_notifier(&b->cpu_notif, CPUFREQ_POLICY_NOTIFIER);
