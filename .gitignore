@@ -10,6 +10,7 @@
 # Normal rules
 #
 out/
+zip/
 *.zip
 .*
 *.o
